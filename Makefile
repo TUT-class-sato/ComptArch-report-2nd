@@ -5,7 +5,7 @@ CC=icc
 
 ifeq ($(CC),gcc)
 	CFLAGS= -fopenmp -mavx2 -O3 -g
-	LDFLAGS=
+	LDFLAGS=-lgomp
 else
 	CFLAGS= -qopenmp -O3 -xCORE-AVX512 -g
 	LDFLAGS=-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm
