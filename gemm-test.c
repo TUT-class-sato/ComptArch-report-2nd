@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <math.h>
 #include <x86intrin.h>
 
 
@@ -88,7 +89,7 @@ dgemm_OMP (REAL * A, REAL * B, REAL * C, int n)
   int i, j, k;
   REAL cij;
 
-#pragma omp parallel for private(j,k)
+#pragma omp parallel for 
   for (i = 0; i < n; i++)
     {
       for (j = 0; j < n; j++)
@@ -143,7 +144,7 @@ check_mat (REAL * C, REAL * C_unopt, int N)
 	{
 	  if (fabs ((C[n + N * m] - C_unopt[n + N * m])/C_unopt[n + N * m]) > max_err)
 	    {
-	      printf("Error:   result is different in %d,%d  (%.2f, %.2f) delta %.2f > max_err %.2f \n",
+	      printf("Error:   result is different in %d,%d  (%.5f, %.5f) delta %.5f > max_err %.5f \n",
 		 n, m, C[n + N * m], C_unopt[n + N * m],
 		 fabs (C[n + N * m] - C_unopt[n + N * m]), max_err);
 	    }
