@@ -1,7 +1,7 @@
 all:gemm-test
 
-#CC=gcc
-CC=icc
+CC=gcc
+#CC=icc
 
 ifeq ($(CC),gcc)
 	CFLAGS= -fopenmp -mavx2 -O3 -g
