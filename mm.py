@@ -18,7 +18,7 @@ for i in range(n):
 		# Python's float type is 64 bit double-precision floating point data
 		A[i][j] = B[i][j] = float(i+j)/(j+0.5) 
 
-print( type(A[0][0]))
+# print( type(A[0][0]))
 
 #gemm calculation
 start = time.time() 
