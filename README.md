@@ -42,5 +42,12 @@
   - スレッド数の指定は、`export OMP_NUM_THREADS=4; make run`　あるいは　`make run -e OMP_NUM_THREADS=4`
     - IMCのxdevから利用する計算サーバーは、教育向け用途では4コアまでの利用に限定されている。
 - CPUなどの情報は`% lscpu`とすると、OSが認識しているCPUの情報などが表示されます。OSは`% less /etc/redhat-release`にて表示されます。
-  - xdevからqsubで割り当てられた計算サーバーのCPUやOSを表示するには、
+  - xdevからqsubで割り当てられた計算サーバーのCPUやOSを表示するには、qsubの後でノードを割り当てた後に上記のコマンドを実行する必要があります。
+- AVX_OMPのdefine文や#ifの設定を変更すると、IMCのクラスタにおいてデフォルトのMakefileの設定（gcc）ではコンパイルがエラーとなります。
+  - コンパイラをIntel Compierのiccに切り替えると、__m512dなどのデータ型を認識できるようになり、コンパイルできます。
+  - 具体的には、Makefileの冒頭で以下のように変更することにより、iccでコンパイルするようにします。
+```
+#CC=gcc
+CC=icc
+```
 - その他の事項は、適宜、[IMC HPCクラスタのwiki](https://hpcportal.imc.tut.ac.jp/wiki/)をご覧ください。
