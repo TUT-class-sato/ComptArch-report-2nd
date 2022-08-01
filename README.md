@@ -30,7 +30,7 @@
 - コンパイラとして、Intel Compiler (icc)も使える
 - ログイン後、git cloneのコマンドにて課題のサンプルプログラムをコピーし、以下をコマンドを実行し、計算サーバーに移動して、プログラムを実行すること。
 ```
-% qsub -I -q wEduq -l select=1:ncpus=4 -v DOCKER_IMAGE=prg-env:latest
+% qsub -I -q wEduq -l select=1:ncpus=4 -v DOCKER_IMAGE=mpi-env:latest
 ```
 - qsubコマンド実行後、コマンドプロンプトが返ってきたら、`make; make run`で実験できます。
   - `qsub –I –l select…` が紛らわしいのですが、最初が大文字のiで、セレクトの前が小文字のLです。
