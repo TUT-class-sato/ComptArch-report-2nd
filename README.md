@@ -27,8 +27,15 @@
 ```
 % ssh xdev.edu.tut.ac.jp
 ```
-- コンパイラとして、Intel Compiler (icc)も使える
-- ログイン後、git cloneのコマンドにて課題のサンプルプログラムをコピーし、以下をコマンドを実行し、計算サーバーに移動して、プログラムを実行すること。
+- 上記のsshでログインすると窓口サーバーに繋がります。
+- コンパイラとして、Intel Compiler (icc)も使えます。
+- ログイン後、git cloneのコマンドにて課題のサンプルプログラムをコピーします。lsでコピーが成功したか確認します。
+```
+% git clone https://github.com/TUT-class-sato/ComptArch-report-2nd.git
+% ls ComptArch-report-2nd
+```
+- 逐次処理のプログラムで短時間で終わる処理であれば、窓口サーバーで処理しても大丈夫です。
+- OpenMPなど並列処理のプログラムの実行を行うためには、以下をコマンドを実行し、計算サーバーに移動して、プログラムを実行すること。
 ```
 % qsub -I -q wEduq -l select=1:ncpus=4 -v DOCKER_IMAGE=mpi-env:latest
 ```
