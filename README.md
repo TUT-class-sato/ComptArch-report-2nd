@@ -37,7 +37,7 @@
 - 逐次処理のプログラムで短時間で終わる処理であれば、窓口サーバーで処理しても大丈夫です。
 - OpenMPなど並列処理のプログラムの実行を行うためには、以下をコマンドを実行し、計算サーバーに移動して、プログラムを実行すること。
 ```
-% qsub -I -q wEduq -l select=1:ncpus=4 -v DOCKER_IMAGE=mpi-env:latest
+% qsub -I -q wEduq -l select=1:ncpus=4 -v DOCKER_IMAGE=prg-env:latest
 ```
 - qsubコマンド実行後、コマンドプロンプトが返ってきたら、`make; make run`で実験できます。
   - `qsub –I –l select…` が紛らわしいのですが、最初が大文字のiで、セレクトの前が小文字のLです。
