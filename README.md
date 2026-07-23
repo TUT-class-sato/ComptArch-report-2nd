@@ -55,7 +55,7 @@
 
   - スレッド数を変更するには、`export OMP_NUM_THREADS=4; make run`　あるいは　`make run -e OMP_NUM_THREADS=4`
     - IMCのydevから利用する計算サーバーは、教育向け用途では8コアまでの利用に限定されている。
-- CPUなどの情報は`% lscpu`とすると、OSが認識しているCPUの情報などが表示されます。OSは`% less /etc/redhat-release`にて表示されます。
+- CPUなどの情報は`% nproc`とすると、qsub後に割り当てられたCPUの個数が表示されます。OSは`% less /etc/redhat-release`にて表示されます。
   - ydevからqsubで割り当てられた計算サーバーのCPUやOSを表示するには、qsubの後でノードを割り当てた後に上記のコマンドを実行する必要があります。
 - コンパイラはMakefileの以下で切り替えられます。
 ```
