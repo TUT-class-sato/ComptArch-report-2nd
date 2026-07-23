@@ -19,18 +19,22 @@
 
 #define BLOCKING		/* blocking -> ON */
 //#define AVX2			/* Intel AVX2-> ON */
-//#define AVX512			/* Intel AVX512 -> ON */
-//#define AVX512_UNROLL		/* Intel AVX512 & UNROLL -> ON */
+#define AVX512			/* Intel AVX512 -> ON */
+#define AVX512_UNROLL		/* Intel AVX512 & UNROLL -> ON */
 #define OMP                           /* OpenMP -> ON */
-//#define AVX_OMP                       /* Intel AVX + OpenMP -> ON */
-//#define AVX512_BLOCKING		/* Intel AVX512 & blocking -> ON */
-//#define AVX512_UNROLL_BLOCKING	/* Intel AVX512 & UNROLL & blocking -> ON */
-//#define AVX512_UNROLL_BLOCKING_OMP	/* Intel AVX512 & UNROLL & blocking & OMP -> ON */
+#define AVX_OMP                       /* Intel AVX + OpenMP -> ON */
+#define AVX512_BLOCKING		/* Intel AVX512 & blocking -> ON */
+#define AVX512_UNROLL_BLOCKING	/* Intel AVX512 & UNROLL & blocking -> ON */
+#define AVX512_UNROLL_BLOCKING_OMP	/* Intel AVX512 & UNROLL & blocking & OMP -> ON */
+
+
 //#define BLOCKING_OMP          /* blocking + OpenMP -> ON */
 //#define BLOCKING_OMP2         /* blocking + OpenMP(2places) -> ON */
 //#define BLOCKING_AVX_OMP              /* blocking + Intel AVX + OpenMP -> ON */
 //#define BLOCKING_AVX_OMP2             /* blocking + Intel AVX + OpenMP(2places) -> ON */
 
+
+void dgemm_unopt (REAL * A, REAL * B, REAL * C, int n);
 
 /* Unoptimized */
 void
@@ -102,283 +106,6 @@ dgemm_OMP (REAL * A, REAL * B, REAL * C, int n)
     }
 }
 
-
-/* Timer */
-double
-seconds ()
-{
-  struct timeval tv;
-  gettimeofday (&tv, NULL);
-  return (double) tv.tv_sec + ((double) tv.tv_usec) / 1000000.0;
-}
-
-
-/* init matrics */
-void
-int_mat (REAL * A, REAL * B, REAL * C, int N)
-{
-  int i, j;
-
-  srand (1);
-
-  for (i = 0; i < N; ++i)
-    for (j = 0; j < N; ++j)
-      {
-	A[i + j * N] = (REAL) rand () / (10000 + i + j);
-	B[i + j * N] = (REAL) rand () / (10000 + i + j);
-	C[i + j * N] = (REAL) 0.0;
-      }
-}
-
-
-/* Check calculation*/
-int
-check_mat (REAL * C, REAL * C_unopt, int N)
-{
-  int n, m;
-  double max_err=1.0e-5;
-
-  for (n = 0; n < N; n++)
-    {
-      for (m = 0; m < N; m++)
-	{
-	  if (fabs ((C[n + N * m] - C_unopt[n + N * m])/C_unopt[n + N * m]) > max_err)
-	    {
-	      printf("Error:   result is different in %d,%d  (%.5f, %.5f) delta %.5f > max_err %.5f \n",
-		 n, m, C[n + N * m], C_unopt[n + N * m],
-		 fabs (C[n + N * m] - C_unopt[n + N * m]), max_err);
-	    }
-	}
-    }
-}
-
-
-/*** Main(Matrix calculation) ***/
-int
-main (int argc, char *argv[])
-{
-
-  REAL *A, *B, *C, *C_unopt;
-  int N;			/* N=matrix size */
-  int itr;			/* Number of iterations */
-  int i;
-  double t;
-
-  if (argc < 3)
-    {
-      fprintf (stderr, "Specify M, #ITER\n");
-      /* Argument 1:Array size, Argument 2:Number of iterations */
-      exit (1);
-    }
-
-  N = atoi (argv[1]);		/* Argument 1:Array size */
-  if (N % 8 != 0)
-    {
-      printf ("Please specify N that is a multipe of 8 for AVX 256 bit\n");
-      return 0;
-    }
-
-  if (N % BLOCKSIZE != 0)
-    {
-      printf
-	("Please specify N that is a multipe of BLOCKSIZE(%d) for Blocking\n",
-	 BLOCKSIZE);
-      return 0;
-    }
-
-
-  itr = atoi (argv[2]);		/* Argument 2:Number of iterations */
-
-
-#if defined(FP_SINGLE)
-  printf ("data_size : float\n");
-#else
-  printf ("data_size : double(default)\n");
-#endif
-  printf ("array size N = %d\n", N);
-
-  printf ("blocking size = %d\n", BLOCKSIZE);
-  printf ("The number of threads= %s\n", getenv ("OMP_NUM_THREADS"));
-
-  printf ("iterations = %d\n", itr);
-
-	/** memory set **/
-  A = (REAL *) malloc (N * N * sizeof (REAL));
-  B = (REAL *) malloc (N * N * sizeof (REAL));
-  C = (REAL *) malloc (N * N * sizeof (REAL));
-  C_unopt = (REAL *) malloc (N * N * sizeof (REAL));
-
-	/** calculation **/
-  for (i = 0; i < itr; ++i)
-    {
-      /*unoptimized */
-      int_mat (A, B, C_unopt, N);
-      t = seconds ();
-      dgemm_unopt (A, B, C_unopt, N);
-      t = seconds () - t;
-      printf ("\n%f [s]  GFLOPS %f  |unoptimized| \n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-
-
-      /*blocking */
-#ifdef BLOCKING
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_blocking (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |blocking|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX2 */
-#ifdef AVX2
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX2 (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX2|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX512 */
-#ifdef AVX512
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX512 (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX512|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX512_UNROLL */
-#ifdef AVX512_UNROLL
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX512_UNROLL (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX512_UNROLL|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*OpenMP */
-#ifdef OMP
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_OMP (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |OpenMP|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX+OpenMP */
-#ifdef AVX_OMP
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX_OMP (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX+OpenMP|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX512+blocking */
-#ifdef AVX512_BLOCKING
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX512_blocking (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX512+blocking|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX512+UNROLL+blocking */
-#ifdef AVX512_UNROLL_BLOCKING
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX512_UNROLL_blocking (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX512+UNROLL+blocking|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*AVX512+UNROLL+blocking+OMP */
-#ifdef AVX512_UNROLL_BLOCKING_OMP
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_AVX512_UNROLL_blocking_OMP (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |AVX512+UNROLL+blocking+OMP|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-#if 0
-      /*blocking+OMP */
-#ifdef BLOCKING_OMP
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_blocking_OMP (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |blocking+OMP|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*blocking+OMP2 */
-#ifdef BLOCKING_OMP2
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_blocking_OMP2 (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |blocking+OMP2|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*blocking+AVX+OMP */
-#ifdef BLOCKING_AVX_OMP
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_blocking_AVX_OMP (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |blocking+AVX+OMP|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-
-      /*blocking+AVX+OMP2 */
-#ifdef BLOCKING_AVX_OMP2
-      int_mat (A, B, C, N);
-      t = seconds ();
-      dgemm_blocking_AVX_OMP2 (A, B, C, N);
-      t = seconds () - t;
-      check_mat (C, C_unopt, N);
-      printf ("%f [s]  GFLOPS %f  |blocking+AVX+OMP2|\n", t,
-	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
-#endif
-#endif
-
-    }
-
-
-	/** memory free **/
-  free (A);
-  free (B);
-  free (C);
-  free (C_unopt);
-
-  return 0;
-
-}
-
-
-#if 0
 
 void
 do_AVX512_block (int n, int si, int sj, int sk, REAL * A, REAL * B, REAL * C)
@@ -564,9 +291,6 @@ dgemm_AVX512_UNROLL (REAL * A, REAL * B, REAL * C, int n)
 	}
     }
 }
-
-
-#if 0
 void
 dgemm_AVX_OMP (REAL * A, REAL * B, REAL * C, int n)
 {
@@ -608,6 +332,238 @@ dgemm_AVX_OMP (REAL * A, REAL * B, REAL * C, int n)
     }
 #endif
 }
+
+
+/* Timer */
+double
+seconds ()
+{
+  struct timeval tv;
+  gettimeofday (&tv, NULL);
+  return (double) tv.tv_sec + ((double) tv.tv_usec) / 1000000.0;
+}
+
+
+/* init matrics */
+void
+int_mat (REAL * A, REAL * B, REAL * C, int N)
+{
+  int i, j;
+
+  srand (1);
+
+  for (i = 0; i < N; ++i)
+    for (j = 0; j < N; ++j)
+      {
+	A[i + j * N] = (REAL) rand () / (10000 + i + j);
+	B[i + j * N] = (REAL) rand () / (10000 + i + j);
+	C[i + j * N] = (REAL) 0.0;
+      }
+}
+
+
+/* Check calculation*/
+int
+check_mat (REAL * C, REAL * C_unopt, int N)
+{
+  int n, m;
+  double max_err=1.0e-5;
+
+  for (n = 0; n < N; n++)
+    {
+      for (m = 0; m < N; m++)
+	{
+	  if (fabs ((C[n + N * m] - C_unopt[n + N * m])/C_unopt[n + N * m]) > max_err)
+	    {
+	      printf("Error:   result is different in %d,%d  (%.5f, %.5f) delta %.5f > max_err %.5f \n",
+		 n, m, C[n + N * m], C_unopt[n + N * m],
+		 fabs (C[n + N * m] - C_unopt[n + N * m]), max_err);
+	    }
+	}
+    }
+}
+
+
+/*** Main(Matrix calculation) ***/
+int
+main (int argc, char *argv[])
+{
+
+  REAL *A, *B, *C, *C_unopt;
+  int N;			/* N=matrix size */
+  int itr;			/* Number of iterations */
+  int i;
+  double t;
+
+  if (argc < 3)
+    {
+      fprintf (stderr, "Specify M, #ITER\n");
+      /* Argument 1:Array size, Argument 2:Number of iterations */
+      exit (1);
+    }
+
+  N = atoi (argv[1]);		/* Argument 1:Array size */
+  if (N % 8 != 0)
+    {
+      printf ("Please specify N that is a multipe of 8 for AVX 256 bit\n");
+      return 0;
+    }
+
+  if (N % BLOCKSIZE != 0)
+    {
+      printf
+	("Please specify N that is a multipe of BLOCKSIZE(%d) for Blocking\n",
+	 BLOCKSIZE);
+      return 0;
+    }
+
+
+  itr = atoi (argv[2]);		/* Argument 2:Number of iterations */
+
+
+#if defined(FP_SINGLE)
+  printf ("data_size : float\n");
+#else
+  printf ("data_size : double(default)\n");
+#endif
+  printf ("array size N = %d\n", N);
+
+  printf ("blocking size = %d\n", BLOCKSIZE);
+  printf ("The number of threads= %s\n", getenv ("OMP_NUM_THREADS"));
+
+  printf ("iterations = %d\n", itr);
+
+	/** memory set **/
+  //A = (REAL *) malloc (N * N * sizeof (REAL));
+  //B = (REAL *) malloc (N * N * sizeof (REAL));
+  //C = (REAL *) malloc (N * N * sizeof (REAL));
+  //C_unopt = (REAL *) malloc (N * N * sizeof (REAL));
+
+  posix_memalign(&A, 64, N * N * sizeof (REAL));
+  posix_memalign(&B, 64, N * N * sizeof (REAL));
+  posix_memalign(&C, 64, N * N * sizeof (REAL));
+  posix_memalign(&C_unopt, 64, N * N * sizeof (REAL));
+
+	/** calculation **/
+  for (i = 0; i < itr; ++i)
+    {
+      /*unoptimized */
+      int_mat (A, B, C_unopt, N);
+      t = seconds ();
+      dgemm_unopt (A, B, C_unopt, N);
+      t = seconds () - t;
+      printf ("\n%f [s]  GFLOPS %f  |unoptimized| \n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+
+
+      /*blocking */
+#ifdef BLOCKING
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_blocking (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |blocking|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
 #endif
 
+      /*AVX2 */
+#ifdef AVX2
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX2 (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX2|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
 #endif
+
+      /*AVX512 */
+#ifdef AVX512
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX512 (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX512|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+      /*AVX512_UNROLL */
+#ifdef AVX512_UNROLL
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX512_UNROLL (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX512_UNROLL|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+      /*OpenMP */
+#ifdef OMP
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_OMP (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |OpenMP|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+      /*AVX+OpenMP */
+#ifdef AVX_OMP
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX_OMP (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX+OpenMP|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+      /*AVX512+blocking */
+#ifdef AVX512_BLOCKING
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX512_blocking (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX512+blocking|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+      /*AVX512+UNROLL+blocking */
+#ifdef AVX512_UNROLL_BLOCKING
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX512_UNROLL_blocking (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX512+UNROLL+blocking|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+      /*AVX512+UNROLL+blocking+OMP */
+#ifdef AVX512_UNROLL_BLOCKING_OMP
+      int_mat (A, B, C, N);
+      t = seconds ();
+      dgemm_AVX512_UNROLL_blocking_OMP (A, B, C, N);
+      t = seconds () - t;
+      check_mat (C, C_unopt, N);
+      printf ("%f [s]  GFLOPS %f  |AVX512+UNROLL+blocking+OMP|\n", t,
+	      (float) N * N * N * 2 / t / 1000 / 1000 / 1000);
+#endif
+
+    }
+
+
+	/** memory free **/
+  free (A);
+  free (B);
+  free (C);
+  free (C_unopt);
+
+  return 0;
+
+}

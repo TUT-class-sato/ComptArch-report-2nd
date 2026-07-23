@@ -1,13 +1,13 @@
 all:gemm-test
 
 CC=gcc
-#CC=icc
+#CC=icx
 
 ifeq ($(CC),gcc)
-	CFLAGS= -fopenmp -mavx2 -O3 -g
+	CFLAGS= -fopenmp -O3 -g -march=native
 	LDFLAGS=-lgomp
 else
-	CFLAGS= -qopenmp -O3 -xCORE-AVX512 -g
+	CFLAGS= -qopenmp -O3 -g  -march=native 
 	LDFLAGS=-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm
 endif
 
@@ -15,7 +15,7 @@ gemm-test: gemm-test.o
 	$(CC) -o $@ $< $(LDFLAGS)
 
 run:
-	taskset -c 0-$$(($(OMP_NUM_THREADS)-1)) ./gemm-test 960 10
+	./gemm-test 960 10
 
 
 
